@@ -13,7 +13,23 @@ class ExpenseController extends Controller
     public function index()
     {
         $expenses = Expense::orderBy('expense_date', 'desc')->get();
-        return view('expenses.index', compact('expenses'));
+        
+        // Calculate category totals for chart
+        $categoryTotals = Expense::selectRaw('category, SUM(amount) as total')
+            ->groupBy('category')
+            ->orderBy('total', 'desc')
+            ->get();
+        
+        // Calculate total spending
+        $totalSpending = $expenses->sum('amount');
+        
+        // Prepare data for Chart.js with safety checks
+        $chartLabels = $categoryTotals->pluck('category')->toArray();
+        $chartData = $categoryTotals->pluck('total')->map(function($amount) {
+            return (float) $amount;
+        })->toArray();
+        
+        return view('expenses.index', compact('expenses', 'categoryTotals', 'totalSpending', 'chartLabels', 'chartData'));
     }
 
     /**
